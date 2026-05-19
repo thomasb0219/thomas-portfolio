@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#080D1A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Thomas Portfolio">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Thomas Portfolio</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#080D1A;font-family:-apple-system,'Noto Sans KR',BlinkMacSystemFont,sans-serif;color:#E8F0FF;overflow:hidden}
+#app{height:100dvh;display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative}
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:65px}
+#content::-webkit-scrollbar{display:none}
+.mono{font-family:'IBM Plex Mono','Courier New',monospace}
+
+/* Nav */
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(8,13,26,0.97);backdrop-filter:blur(20px);border-top:1px solid #1E2D4A;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{flex:1;padding:8px 4px 10px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:opacity 0.15s}
+.nav-btn svg{width:20px;height:20px;stroke:#4B5E8A;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke 0.15s}
+.nav-btn span{font-size:10px;color:#4B5E8A;transition:color 0.15s;font-weight:500}
+.nav-btn.active svg{stroke:#4FC3F7}
+.nav-btn.active span{color:#4FC3F7;font-weight:700}
+.nav-btn.active-ai svg{stroke:#00E5A0}
+.nav-btn.active-ai span{color:#00E5A0;font-weight:700}
+
+/* Status */
+#status{background:#080D1A;padding:env(safe-area-inset-top) 16px 8px;display:flex;justify-content:space-between;font-size:11px;color:#4B5E8A;flex-shrink:0}
+
+/* Cards */
+.card{background:#0F1729;border-radius:14px;padding:13px;margin-bottom:8px;border:1px solid #1E2D4A}
+.card-g{border-color:rgba(0,229,160,0.2)}
+.card-r{border-color:rgba(255,64,102,0.2)}
+.hero{background:linear-gradient(135deg,#0d2545,#081a38);border-radius:18px;padding:18px;margin:12px;border:1px solid #1E3A6E}
+
+/* Colors */
+.g{color:#00E5A0}.r{color:#FF4066}.muted{color:#4B5E8A}.accent{color:#4FC3F7}
+.bg-g{background:rgba(0,229,160,0.12)}.bg-r{background:rgba(255,64,102,0.12)}
+
+/* Forms */
+.inp{background:#0F1729;border:1px solid #1E2D4A;border-radius:9px;color:#E8F0FF;padding:10px 12px;font-size:14px;width:100%;outline:none;font-family:-apple-system,sans-serif}
+.inp:focus{border-color:#4FC3F7}
+.sel{background:#0F1729;border:1px solid #1E2D4A;border-radius:9px;color:#E8F0FF;padding:10px 12px;font-size:14px;width:100%;outline:none;appearance:none}
+label{color:#4B5E8A;font-size:11px;display:block;margin-bottom:5px;letter-spacing:0.3px}
+.field{margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Buttons */
+.btn-primary{width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#00C49F,#0088CC);color:#000;font-size:15px;font-weight:700;margin-bottom:8px}
+.btn-danger{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,64,102,0.4);cursor:pointer;background:rgba(255,64,102,0.08);color:#FF4066;font-size:14px;font-weight:600}
+.btn-sec{width:100%;padding:11px;border-radius:10px;border:1px solid #1E2D4A;cursor:pointer;background:#0F1729;color:#4FC3F7;font-size:13px;font-weight:600}
+
+/* Tab switch */
+.tab-sw{display:flex;gap:6px;margin-bottom:12px}
+.tab-sw button{flex:1;padding:8px;border-radius:9px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all 0.15s}
+.tab-sw .on{background:#4FC3F7;color:#000}
+.tab-sw .off{background:#0F1729;color:#4B5E8A}
+
+/* Toast */
+#toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#1E3A2A;color:#00E5A0;padding:8px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:opacity 0.3s;z-index:999;border:1px solid rgba(0,229,160,0.3);pointer-events:none}
+#toast.show{opacity:1}
+
+/* AI loader */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:18px;height:18px;border:2px solid #1E2D4A;border-top-color:#E8F0FF;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px}
+
+/* Stat mini */
+.stat{background:#0F1729;border-radius:10px;padding:8px 10px;border:1px solid #1E2D4A}
+.stat .l{color:#4B5E8A;font-size:9px;margin-bottom:3px}
+.stat .v{color:#E8F0FF;font-size:13px;font-weight:600}
+
+/* Stock row */
+.sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px}
+.sg .sl{color:#4B5E8A;font-size:9px;margin-bottom:2px}
+
+/* History row */
+.hr-row{display:grid;grid-template-columns:60px 1fr 70px;padding:10px 12px;border-bottom:1px solid rgba(30,45,74,0.4);font-size:11px}
+.hr-row:last-child{border-bottom:none}
+
+/* Back btn */
+.back-btn{background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;gap:6px;color:#4FC3F7;font-size:14px;font-weight:600;margin-right:8px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="status"></div>
+  <div id="content"></div>
+  <nav id="nav">
+    <button class="nav-btn active" data-tab="home" onclick="go('home')">
+      <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>홈</span>
+    </button>
+    <button class="nav-btn" data-tab="portfolio" onclick="go('portfolio')">
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      <span>보유</span>
+    </button>
+    <button class="nav-btn" data-tab="trade" onclick="go('trade')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span>거래</span>
+    </button>
+    <button class="nav-btn" data-tab="history" onclick="go('history')">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>히스토리</span>
+    </button>
+    <button class="nav-btn" data-tab="ai" onclick="go('ai')">
+      <svg viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.04z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.04z"/></svg>
+      <span>AI제안</span>
+    </button>
+  </nav>
+</div>
+<div id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────
+const DEFAULTS = {
+  kr:[
+    {id:1,name:'SK하이닉스',code:'000660',qty:15,avg:897707,cur:1788000,market:'KOSPI'},
+    {id:2,name:'현대차',code:'005380',qty:5,avg:517500,cur:606000,market:'KOSPI'},
+    {id:3,name:'삼성전자',code:'005930',qty:82,avg:180533,cur:274000,market:'KOSPI'},
+    {id:4,name:'삼성전자우',code:'005935',qty:35,avg:177271,cur:178600,market:'KOSPI'},
+    {id:5,name:'두산에너빌리티',code:'034020',qty:50,avg:114758,cur:105400,market:'KOSPI'},
+    {id:6,name:'원익IPS',code:'240810',qty:20,avg:121370,cur:113000,market:'KOSDAQ'},
+  ],
+  us:[
+    {id:7,ticker:'GOOGL',qty:5,avg:335.34,cur:393.91},
+    {id:8,ticker:'INTC',qty:4,avg:52.082,cur:107.9},
+    {id:9,ticker:'IREN',qty:120,avg:39.894,cur:52.0},
+    {id:10,ticker:'PL',qty:65,avg:25.5875,cur:41.75},
+    {id:11,ticker:'PLTR',qty:55,avg:149.9116,cur:132.65},
+    {id:12,ticker:'RKLB',qty:65,avg:82.0228,cur:124.07},
+    {id:13,ticker:'URA',qty:18,avg:53.4497,cur:49.36},
+  ],
+  history:[
+    {date:'04/20',total:81200000,profit:0,rate:0},
+    {date:'04/22',total:91541625,profit:10341625,rate:12.74},
+    {date:'04/24',total:92524555,profit:11324555,rate:13.95},
+    {date:'04/29',total:91137118,profit:9937118,rate:12.24},
+    {date:'05/08',total:103123553,profit:22923553,rate:28.53},
+    {date:'05/12',total:117075713,profit:35875713,rate:44.20},
+    {date:'05/18',total:117884284,profit:36684284,rate:45.18},
+  ],
+  krCash:2710724, usCash:3769.83, fx:1470
+};
+
+// ── STATE ─────────────────────────────────────
+let S = {
+  kr:[], us:[], history:[], krCash:0, usCash:0, fx:1470,
+  tab:'home', pTab:'kr', editItem:null, aiAdvice:null, aiKey:'', tradeType:'kr'
+};
+
+function load() {
+  try {
+    const saved = localStorage.getItem('thomas-v4');
+    if (saved) {
+      const d = JSON.parse(saved);
+      S.kr = d.kr || DEFAULTS.kr;
+      S.us = d.us || DEFAULTS.us;
+      S.history = d.history || DEFAULTS.history;
+      S.krCash = d.krCash ?? DEFAULTS.krCash;
+      S.usCash = d.usCash ?? DEFAULTS.usCash;
+      S.fx = d.fx ?? 1470;
+      S.aiAdvice = d.aiAdvice || null;
+      S.aiKey = d.aiKey || '';
+    } else {
+      S.kr = JSON.parse(JSON.stringify(DEFAULTS.kr));
+      S.us = JSON.parse(JSON.stringify(DEFAULTS.us));
+      S.history = JSON.parse(JSON.stringify(DEFAULTS.history));
+      S.krCash = DEFAULTS.krCash;
+      S.usCash = DEFAULTS.usCash;
+    }
+  } catch(e) {
+    S.kr = JSON.parse(JSON.stringify(DEFAULTS.kr));
+    S.us = JSON.parse(JSON.stringify(DEFAULTS.us));
+    S.history = JSON.parse(JSON.stringify(DEFAULTS.history));
+    S.krCash = DEFAULTS.krCash;
+    S.usCash = DEFAULTS.usCash;
+  }
+}
+
+function save() {
+  try { localStorage.setItem('thomas-v4', JSON.stringify({kr:S.kr,us:S.us,history:S.history,krCash:S.krCash,usCash:S.usCash,fx:S.fx,aiAdvice:S.aiAdvice,aiKey:S.aiKey})); } catch(e) {}
+}
+
+// ── HELPERS ───────────────────────────────────
+const fmt = (n,d=0) => isNaN(n)?'-':n.toLocaleString('ko-KR',{maximumFractionDigits:d});
+const fmtM = n => { const a=Math.abs(n),s=n<0?'-':''; if(a>=100000000) return s+(a/100000000).toFixed(1)+'억'; if(a>=10000) return s+Math.round(a/10000)+'만'; return fmt(n); };
+const sgn = n => n>=0?'+':'';
+const clr = n => n>0?'g':n<0?'r':'muted';
+const clrHex = n => n>0?'#00E5A0':n<0?'#FF4066':'#4B5E8A';
+const pct = (c,a) => a>0?((c-a)/a*100):0;
+
+function totals() {
+  const krV = S.kr.reduce((s,k)=>s+k.qty*k.cur,0)+S.krCash;
+  const usV = S.us.reduce((s,u)=>s+u.qty*u.cur,0)*S.fx+S.usCash*S.fx;
+  const tot = krV+usV;
+  const inv = S.kr.reduce((s,k)=>s+k.qty*k.avg,0)+S.us.reduce((s,u)=>s+u.qty*u.avg,0)*S.fx+S.krCash+S.usCash*S.fx;
+  const profit = tot-inv;
+  const rate = inv>0?(profit/inv*100):0;
+  return {tot,inv,profit,rate,krV,usV};
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className='show';
+  setTimeout(()=>t.className='',2000);
+}
+
+// ── NAVIGATION ────────────────────────────────
+function go(tab, clearEdit=true) {
+  if(clearEdit) S.editItem = null;
+  S.tab = tab;
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    const active = b.dataset.tab === tab;
+    const isAI = tab === 'ai';
+    b.className = 'nav-btn' + (active ? (isAI ? ' active-ai' : ' active') : '');
+  });
+  render();
+}
+
+// ── RENDER ────────────────────────────────────
+let charts = {};
+function destroyCharts() { Object.values(charts).forEach(c=>{ try{c.destroy()}catch(e){} }); charts={}; }
+
+function render() {
+  destroyCharts();
+  const T = totals();
+  const now = new Date();
+  document.getElementById('status').innerHTML =
+    `<span>${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</span>
+     <span class="${clr(T.profit)} mono">${sgn(T.profit)}${fmtM(T.profit)}원 (${sgn(T.rate)}${T.rate.toFixed(1)}%)</span>`;
+
+  const c = document.getElementById('content');
+  if(S.tab==='home') c.innerHTML = renderHome(T);
+  else if(S.tab==='portfolio') c.innerHTML = renderPortfolio();
+  else if(S.tab==='trade') c.innerHTML = renderTrade();
+  else if(S.tab==='history') c.innerHTML = renderHistory();
+  else if(S.tab==='ai') c.innerHTML = renderAI(T);
+  c.scrollTop = 0;
+
+  setTimeout(() => {
+    if(S.tab==='home') initMiniChart();
+    if(S.tab==='history') initHistChart();
+  }, 50);
+}
+
+// ── HOME ──────────────────────────────────────
+function renderHome(T) {
+  const top = [...S.kr.map(k=>({name:k.name,rate:pct(k.cur,k.avg)})),
+               ...S.us.map(u=>({name:u.ticker,rate:pct(u.cur,u.avg)}))].sort((a,b)=>b.rate-a.rate).slice(0,3);
+  const medals=['🥇','🥈','🥉'];
+  return `
+<div style="padding:0 0 8px">
+  <div style="padding:14px 14px 0;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div class="muted" style="font-size:10px;letter-spacing:1px">PORTFOLIO</div>
+      <div style="font-size:17px;font-weight:700">Thomas 사장님 💼</div>
+    </div>
+    <div style="text-align:right">
+      <div class="muted" style="font-size:10px">환율 (원/$)</div>
+      <input class="mono" type="number" value="${S.fx}" onchange="S.fx=parseFloat(this.value)||1470;save();render()" style="background:#0F1729;border:1px solid #1E2D4A;color:#4FC3F7;font-size:13px;width:72px;padding:3px 8px;border-radius:7px;text-align:right">
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="muted" style="font-size:11px;margin-bottom:4px">총 평가금액</div>
+    <div class="mono" style="font-size:28px;font-weight:800;letter-spacing:-1px">${fmtM(T.tot)}<span style="font-size:14px;font-weight:400">원</span></div>
+    <div style="margin-top:8px;display:flex;align-items:center;gap:10px">
+      <span class="${clr(T.profit)} mono" style="font-size:17px;font-weight:700">${sgn(T.profit)}${fmtM(T.profit)}원</span>
+      <span class="${clr(T.rate)} mono" style="font-size:14px;font-weight:700;padding:3px 10px;border-radius:8px" class="${T.rate>=0?'bg-g':'bg-r'}" style="background:${T.rate>=0?'rgba(0,229,160,0.13)':'rgba(255,64,102,0.13)'}">${sgn(T.rate)}${T.rate.toFixed(1)}%</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:8px 10px"><div class="muted" style="font-size:9px;margin-bottom:3px">🇰🇷 국내</div><div class="mono" style="font-size:13px;font-weight:600">${fmtM(T.krV)}원</div></div>
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:8px 10px"><div class="muted" style="font-size:9px;margin-bottom:3px">🇺🇸 미국</div><div class="mono" style="font-size:13px;font-weight:600">${fmtM(T.usV)}원</div></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:0 14px 10px">
+    ${[['종목수',S.kr.length+S.us.length+'개'],['국내현금',fmtM(S.krCash)],['해외현금','$'+fmt(S.usCash,0)]].map(([l,v])=>`<div class="stat"><div class="l">${l}</div><div class="v">${v}</div></div>`).join('')}
+  </div>
+
+  <div style="margin:0 14px 10px;background:#0F1729;border-radius:13px;padding:12px;border:1px solid #1E2D4A">
+    <div class="muted" style="font-size:9px;margin-bottom:6px;letter-spacing:1px">수익률 추이</div>
+    <canvas id="mini-chart" style="width:100%;height:65px"></canvas>
+  </div>
+
+  <div style="padding:0 14px">
+    <div class="muted" style="font-size:10px;letter-spacing:1px;margin-bottom:7px">TOP PERFORMERS</div>
+    ${top.map((s,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#0F1729;border-radius:10px;margin-bottom:5px;border:1px solid #1E2D4A">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">${medals[i]}</span><span style="font-size:13px;font-weight:600">${s.name}</span></div>
+      <span class="${clr(s.rate)} mono" style="font-size:13px;font-weight:700">${sgn(s.rate)}${s.rate.toFixed(1)}%</span>
+    </div>`).join('')}
+  </div>
+</div>`;
+}
+
+function initMiniChart() {
+  const el = document.getElementById('mini-chart'); if(!el) return;
+  charts.mini = new Chart(el,{type:'line',data:{labels:S.history.map(h=>h.date),datasets:[{data:S.history.map(h=>h.rate),borderColor:'#00E5A0',borderWidth:2,pointRadius:0,tension:0.4,fill:true,backgroundColor:'rgba(0,229,160,0.07)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}},animation:{duration:0}}});
+}
+
+// ── PORTFOLIO ─────────────────────────────────
+function renderPortfolio() {
+  const pt = S.pTab;
+  let cards = '';
+  if(pt==='kr') {
+    cards = S.kr.map(s => {
+      const profit=(s.cur-s.avg)*s.qty, rate=pct(s.cur,s.avg);
+      return `<div class="card ${rate>=0?'card-g':'card-r'}">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <div><span style="font-size:13px;font-weight:700">${s.name}</span><span class="muted" style="font-size:10px;margin-left:5px">${s.market}</span></div>
+          <button onclick="editStock('kr',${s.id})" style="background:none;border:none;cursor:pointer;padding:2px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4FC3F7" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+          </button>
+        </div>
+        <div class="sg">
+          <div><div class="sl">보유수량</div><div class="mono" style="font-weight:600">${s.qty}주</div></div>
+          <div><div class="sl">현재가</div><div class="mono" style="font-weight:600">${fmt(s.cur)}</div></div>
+          <div><div class="sl">수익률</div><div class="mono ${clr(rate)}" style="font-weight:700">${sgn(rate)}${rate.toFixed(1)}%</div></div>
+          <div><div class="sl">매입가</div><div class="mono muted">${fmt(s.avg)}</div></div>
+          <div><div class="sl">평가금액</div><div class="mono">${fmtM(s.qty*s.cur)}</div></div>
+          <div><div class="sl">평가손익</div><div class="mono ${clr(profit)}" style="font-weight:700">${sgn(profit)}${fmtM(profit)}</div></div>
+        </div>
+      </div>`;
+    }).join('');
+    cards += `<div class="card" style="display:flex;justify-content:space-between;align-items:center"><span class="muted" style="font-size:12px">💵 예수금</span><span class="mono accent" style="font-weight:700">${fmt(S.krCash)}원</span></div>`;
+  } else {
+    cards = S.us.map(s => {
+      const profit=(s.cur-s.avg)*s.qty, rate=pct(s.cur,s.avg);
+      return `<div class="card ${rate>=0?'card-g':'card-r'}">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <span class="mono" style="font-size:15px;font-weight:700">${s.ticker}</span>
+          <button onclick="editStock('us',${s.id})" style="background:none;border:none;cursor:pointer;padding:2px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4FC3F7" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+          </button>
+        </div>
+        <div class="sg">
+          <div><div class="sl">수량</div><div class="mono" style="font-weight:600">${s.qty}주</div></div>
+          <div><div class="sl">현재가($)</div><div class="mono" style="font-weight:600">$${s.cur.toFixed(2)}</div></div>
+          <div><div class="sl">수익률</div><div class="mono ${clr(rate)}" style="font-weight:700">${sgn(rate)}${rate.toFixed(1)}%</div></div>
+          <div><div class="sl">매입가</div><div class="mono muted">$${s.avg.toFixed(2)}</div></div>
+          <div><div class="sl">평가($)</div><div class="mono">$${(s.qty*s.cur).toFixed(0)}</div></div>
+          <div><div class="sl">손익(원)</div><div class="mono ${clr(profit)}" style="font-weight:700">${sgn(profit*S.fx)}${fmtM(profit*S.fx)}</div></div>
+        </div>
+      </div>`;
+    }).join('');
+    cards += `<div class="card" style="display:flex;justify-content:space-between;align-items:center"><span class="muted" style="font-size:12px">💵 예수금</span><span class="mono accent" style="font-weight:700">$${fmt(S.usCash,2)}</span></div>`;
+  }
+  return `<div style="padding:0 14px 8px">
+    <div style="padding:14px 0 10px"><div class="muted" style="font-size:10px;letter-spacing:1px">MY HOLDINGS</div><div style="font-size:17px;font-weight:700">포트폴리오</div></div>
+    <div class="tab-sw"><button class="${pt==='kr'?'on':'off'}" onclick="S.pTab='kr';render()">🇰🇷 국내</button><button class="${pt==='us'?'on':'off'}" onclick="S.pTab='us';render()">🇺🇸 미국</button></div>
+    ${cards}
+  </div>`;
+}
+
+// ── TRADE ─────────────────────────────────────
+function renderTrade() {
+  const e = S.editItem, s = e?.stock, isEdit = !!s;
+  const t = s ? (s.ticker ? 'us' : 'kr') : S.tradeType;
+  return `<div style="padding:0 14px 8px">
+    <div style="padding:14px 0 12px;display:flex;align-items:center">
+      ${isEdit?`<button class="back-btn" onclick="S.editItem=null;go('portfolio')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>`:''}
+      <div><div class="muted" style="font-size:10px;letter-spacing:1px">${isEdit?'EDIT':'NEW TRADE'}</div><div style="font-size:17px;font-weight:700">${isEdit?'종목 수정':'거래 입력'}</div></div>
+    </div>
+    ${!isEdit?`<div class="tab-sw" style="margin-bottom:14px"><button id="t-kr" class="${t==='kr'?'on':'off'}" onclick="S.tradeType='kr';render()">🇰🇷 국내</button><button id="t-us" class="${t==='us'?'on':'off'}" onclick="S.tradeType='us';render()">🇺🇸 미국</button></div>`:''}
+    <form onsubmit="saveTrade(event)">
+      <input type="hidden" id="f-type" value="${t}">
+      <input type="hidden" id="f-id" value="${s?.id||''}">
+      ${t==='kr'?`
+        <div class="field"><label>종목명 *</label><input class="inp" id="f-name" value="${s?.name||''}" required placeholder="예: SK하이닉스"></div>
+        <div class="field"><label>종목코드</label><input class="inp" id="f-code" value="${s?.code||''}" placeholder="예: 000660"></div>
+        <div class="field"><label>시장</label><select class="sel" id="f-market"><option ${(s?.market||'KOSPI')==='KOSPI'?'selected':''}>KOSPI</option><option ${s?.market==='KOSDAQ'?'selected':''}>KOSDAQ</option></select></div>
+      `:`
+        <div class="field"><label>티커 *</label><input class="inp mono" id="f-ticker" value="${s?.ticker||''}" required placeholder="예: NVDA" style="text-transform:uppercase"></div>
+      `}
+      <div class="grid2">
+        <div class="field"><label>보유수량</label><input class="inp mono" id="f-qty" type="number" value="${s?.qty||''}" required placeholder="0" step="1"></div>
+        <div class="field"><label>평균매입가</label><input class="inp mono" id="f-avg" type="number" value="${s?.avg||''}" required placeholder="0" step="any"></div>
+      </div>
+      <div class="field"><label>현재가 (직접 입력)</label><input class="inp mono" id="f-cur" type="number" value="${s?.cur||''}" required placeholder="0" step="any" oninput="updatePreview()"></div>
+      <div id="preview-box" style="display:none;background:rgba(79,195,247,0.08);border-radius:10px;padding:10px 12px;margin-bottom:12px;border:1px solid rgba(79,195,247,0.2)">
+        <div class="muted" style="font-size:10px;margin-bottom:3px">예상 손익</div>
+        <div id="preview-val" class="mono" style="font-size:15px;font-weight:700"></div>
+      </div>
+      <button type="submit" class="btn-primary">${isEdit?'✅ 수정 완료':'➕ 추가하기'}</button>
+      ${isEdit?`<button type="button" class="btn-danger" onclick="deleteStock()">🗑 종목 삭제</button>`:''}
+    </form>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #1E2D4A">
+      <div class="muted" style="font-size:10px;letter-spacing:1px;margin-bottom:8px">현금 수정</div>
+      <div class="grid2">
+        <div class="field"><label>국내 예수금 (원)</label><input class="inp mono" type="number" value="${S.krCash}" onchange="S.krCash=parseFloat(this.value)||0;save()" placeholder="0"></div>
+        <div class="field"><label>미국 예수금 ($)</label><input class="inp mono" type="number" value="${S.usCash}" onchange="S.usCash=parseFloat(this.value)||0;save()" placeholder="0" step="0.01"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function updatePreview() {
+  const qty=parseFloat(document.getElementById('f-qty')?.value);
+  const avg=parseFloat(document.getElementById('f-avg')?.value);
+  const cur=parseFloat(document.getElementById('f-cur')?.value);
+  const type=document.getElementById('f-type')?.value;
+  const box=document.getElementById('preview-box'), val=document.getElementById('preview-val');
+  if(!box||!val) return;
+  if(qty&&avg&&cur) {
+    const profit=(cur-avg)*qty, rate=(cur-avg)/avg*100;
+    const profitKRW = type==='us'?profit*S.fx:profit;
+    box.style.display='block';
+    val.style.color=clrHex(profit);
+    val.textContent=`${sgn(profit)}${fmtM(profitKRW)}원 (${sgn(rate)}${rate.toFixed(1)}%)`;
+  } else box.style.display='none';
+}
+
+function saveTrade(e) {
+  e.preventDefault();
+  const type=document.getElementById('f-type').value;
+  const id=document.getElementById('f-id').value;
+  const qty=parseFloat(document.getElementById('f-qty').value);
+  const avg=parseFloat(document.getElementById('f-avg').value);
+  const cur=parseFloat(document.getElementById('f-cur').value);
+  if(!qty||!avg||!cur){toast('모든 필수 항목을 입력해주세요');return;}
+  if(type==='kr') {
+    const name=document.getElementById('f-name').value.trim();
+    if(!name){toast('종목명을 입력해주세요');return;}
+    const item={id:id?parseInt(id):Date.now(),name,code:document.getElementById('f-code').value,market:document.getElementById('f-market').value,qty,avg,cur};
+    id?S.kr=S.kr.map(s=>s.id===parseInt(id)?item:s):S.kr.push(item);
+  } else {
+    const ticker=document.getElementById('f-ticker').value.trim().toUpperCase();
+    if(!ticker){toast('티커를 입력해주세요');return;}
+    const item={id:id?parseInt(id):Date.now(),ticker,qty,avg,cur};
+    id?S.us=S.us.map(s=>s.id===parseInt(id)?item:s):S.us.push(item);
+  }
+  addHistory(); save(); S.editItem=null; toast('저장됐습니다 ✓'); go('portfolio');
+}
+
+function editStock(type,id) {
+  const stock=type==='kr'?S.kr.find(s=>s.id===id):S.us.find(s=>s.id===id);
+  S.editItem={type,stock}; go('trade',false);
+}
+
+function deleteStock() {
+  if(!S.editItem||!confirm('정말 삭제하시겠습니까?')) return;
+  const {type,stock}=S.editItem;
+  type==='kr'?S.kr=S.kr.filter(s=>s.id!==stock.id):S.us=S.us.filter(s=>s.id!==stock.id);
+  addHistory(); save(); S.editItem=null; toast('삭제됐습니다'); go('portfolio');
+}
+
+// ── HISTORY ───────────────────────────────────
+function renderHistory() {
+  const rows=[...S.history].reverse().map((h,i)=>`
+  <div class="hr-row" style="background:${i===0?'rgba(79,195,247,0.05)':'transparent'}">
+    <span class="mono" style="color:${i===0?'#4FC3F7':'#4B5E8A'};font-size:11px">${h.date}</span>
+    <span class="mono" style="font-size:11px;text-align:right;padding-right:8px">${fmtM(h.total)}원</span>
+    <span class="mono ${clr(h.rate)}" style="font-size:11px;text-align:right;font-weight:700">+${h.rate.toFixed(1)}%</span>
+  </div>`).join('');
+  return `<div style="padding:0 14px 8px">
+    <div style="padding:14px 0 10px"><div class="muted" style="font-size:10px;letter-spacing:1px">PERFORMANCE</div><div style="font-size:17px;font-weight:700">투자 히스토리</div></div>
+    <div class="card" style="margin-bottom:10px"><div class="muted" style="font-size:9px;margin-bottom:8px">수익률 추이 (%)</div><canvas id="hist-chart" style="width:100%;height:120px"></canvas></div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:grid;grid-template-columns:60px 1fr 70px;padding:8px 12px;border-bottom:1px solid #1E2D4A">
+        <span class="muted" style="font-size:9px">날짜</span>
+        <span class="muted" style="font-size:9px;text-align:right;padding-right:8px">총 평가액</span>
+        <span class="muted" style="font-size:9px;text-align:right">수익률</span>
+      </div>
+      ${rows}
+    </div>
+    <div style="margin-top:10px"><button class="btn-sec" onclick="addHistory();save();render()">📌 오늘 기록 저장</button></div>
+  </div>`;
+}
+
+function addHistory() {
+  const T=totals(), now=new Date();
+  const date=`${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')}`;
+  const entry={date,total:Math.round(T.tot),profit:Math.round(T.profit),rate:parseFloat(T.rate.toFixed(2))};
+  const idx=S.history.findIndex(h=>h.date===date);
+  idx>=0?S.history[idx]=entry:S.history.push(entry);
+}
+
+function initHistChart() {
+  const el=document.getElementById('hist-chart'); if(!el) return;
+  charts.hist=new Chart(el,{type:'line',data:{labels:S.history.map(h=>h.date),datasets:[{data:S.history.map(h=>h.rate),borderColor:'#4FC3F7',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#4FC3F7',tension:0.35,fill:true,backgroundColor:'rgba(79,195,247,0.07)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`+${ctx.parsed.y.toFixed(1)}%`},backgroundColor:'#1a2a4a',titleColor:'#8B9DC3',bodyColor:'#E8F0FF'}},scales:{x:{ticks:{color:'#4B5E8A',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#4B5E8A',font:{size:9},callback:v=>v+'%'},grid:{color:'rgba(30,45,74,0.5)'}}},animation:{duration:400}}});
+}
+
+// ── AI ────────────────────────────────────────
+function renderAI(T) {
+  return `<div style="padding:0 14px 8px">
+    <div style="padding:14px 0 12px"><div class="muted" style="font-size:10px;letter-spacing:1px">AI ADVISOR</div><div style="font-size:17px;font-weight:700">투자 제안</div></div>
+    
+    <div style="background:linear-gradient(135deg,#0d2520,#081a14);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid rgba(0,229,160,0.2)">
+      <div style="color:#00E5A0;font-size:10px;letter-spacing:1px;margin-bottom:8px">포트폴리오 요약</div>
+      <div class="grid2">
+        <div><div class="muted" style="font-size:9px">총 평가액</div><div class="mono" style="font-weight:700;font-size:13px">${fmtM(T.tot)}원</div></div>
+        <div><div class="muted" style="font-size:9px">총 수익률</div><div class="mono ${clr(T.rate)}" style="font-weight:700;font-size:13px">${sgn(T.rate)}${T.rate.toFixed(1)}%</div></div>
+        <div><div class="muted" style="font-size:9px">국내 종목</div><div style="font-size:13px">${S.kr.length}개</div></div>
+        <div><div class="muted" style="font-size:9px">미국 종목</div><div style="font-size:13px">${S.us.length}개</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="muted" style="font-size:10px;margin-bottom:6px">🔑 Anthropic API 키 (AI 기능 사용 필수)</div>
+      <input class="inp mono" type="password" id="api-key" value="${S.aiKey}" placeholder="sk-ant-..." oninput="S.aiKey=this.value;save()" style="font-size:12px">
+      <div class="muted" style="font-size:10px;margin-top:5px">console.anthropic.com → API Keys에서 발급</div>
+    </div>
+
+    <button onclick="getAIAdvice()" id="ai-btn" style="width:100%;padding:16px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#00C49F,#0088CC);color:#000;font-size:15px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      🚀 투자 제안 받기
+    </button>
+
+    ${S.aiAdvice?`
+    <div class="card" style="border-color:rgba(0,229,160,0.2)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#00C49F,#0088CC);display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4"/></svg>
+        </div>
+        <div><div style="font-weight:700;font-size:12px">Claude AI 투자 어드바이저</div><div class="muted" style="font-size:10px">${new Date().toLocaleString('ko-KR')}</div></div>
+      </div>
+      <div style="color:#C8D8F0;font-size:13px;line-height:1.9;white-space:pre-wrap">${S.aiAdvice}</div>
+      <div class="muted" style="font-size:10px;margin-top:12px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px">⚠️ 본 분석은 정보 제공 목적이며 투자 손익의 책임은 투자자 본인에게 있습니다.</div>
+    </div>`:`
+    <div style="text-align:center;padding:30px 16px">
+      <div style="font-size:40px;margin-bottom:10px">🤖</div>
+      <div class="muted" style="font-size:13px">API 키 입력 후 버튼을 누르면<br>Claude AI가 맞춤 투자 제안을 드립니다</div>
+    </div>`}
+  </div>`;
+}
+
+async function getAIAdvice() {
+  const key = document.getElementById('api-key')?.value.trim() || S.aiKey;
+  if(!key || !key.startsWith('sk-ant-')) { toast('유효한 API 키를 입력해주세요'); return; }
+  S.aiKey = key; save();
+  const btn = document.getElementById('ai-btn');
+  if(btn) { btn.innerHTML='<span class="spinner"></span>AI 분석 중...'; btn.disabled=true; }
+  const T=totals();
+  const summary=`총 평가액: ${fmtM(T.tot)}원, 수익률: ${sgn(T.rate)}${T.rate.toFixed(2)}%
+국내: ${S.kr.map(k=>`${k.name}(${k.qty}주, ${sgn(pct(k.cur,k.avg))}${pct(k.cur,k.avg).toFixed(1)}%)`).join(', ')}
+미국: ${S.us.map(u=>`${u.ticker}(${u.qty}주, ${sgn(pct(u.cur,u.avg))}${pct(u.cur,u.avg).toFixed(1)}%)`).join(', ')}
+현금: 국내 ${fmtM(S.krCash)}원, 미국 $${S.usCash.toFixed(0)}`;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-4-5',max_tokens:1000,system:'당신은 Thomas 사장님의 수석 투자 어드바이저입니다. 한국어로 답변하고, 3~5가지 핵심 투자 제안을 bullet point(•)로 작성하세요. 각 항목 2~3문장. 샤프슈터 전략(반도체 바이앤홀드 2027년까지), 블랙락(100년에 1번의 기회), AI 슈퍼사이클을 근거로 활용하세요.',messages:[{role:'user',content:`포트폴리오 분석 후 즉시 실행 가능한 투자 제안:\n\n${summary}`}]})
+    });
+    const data=await res.json();
+    S.aiAdvice = data.content?.[0]?.text || '분석 중 오류가 발생했습니다.';
+  } catch(err) { S.aiAdvice='네트워크 오류가 발생했습니다. 다시 시도해주세요.'; }
+  save(); render();
+}
+
+// ── INIT ──────────────────────────────────────
+load(); render();
+setInterval(()=>{ const s=document.getElementById('status'); if(!s) return; const T=totals(),now=new Date(); s.innerHTML=`<span>${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</span><span class="${clr(T.profit)} mono">${sgn(T.profit)}${fmtM(T.profit)}원 (${sgn(T.rate)}${T.rate.toFixed(1)}%)</span>`; },60000);
+</script>
+</body>
+</html>
